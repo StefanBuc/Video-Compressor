@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { useRef } from "react";
+import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 
 export default function App() {
   const [file, setFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [targetSize, setTargetSize] = useState(8);
   const [result, setResult] = useState<string | null>(null);
   const [customSize, setCustomSize] = useState("");
@@ -15,6 +15,30 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const sizes = [5, 8, 10, 25, 50, 100];
   const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
+
+  const handleFileSelect = (nextFile: File | null) => {
+    setFile(nextFile);
+  };
+
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    handleFileSelect(event.target.files?.[0] || null);
+  };
+
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+    handleFileSelect(event.dataTransfer.files?.[0] || null);
+  };
 
   const handleCompress = async () => {
     if (!file) {
@@ -48,9 +72,10 @@ export default function App() {
     <div className="font-[Lexend_Deca] flex flex-col items-center gap-6 min-h-screen pt-30 bg-linear-to-b from-[#36454D] to-[#021930]">
       <input
         type="file"
+        accept="video/*"
         ref={fileInputRef}
         className="hidden"
-        onChange={(e) => setFile(e.target.files?.[0] || null)}
+        onChange={handleInputChange}
       />
       <img src="/logo.png" alt="Logo" className="w-32 h-32 mb-2" />
       <h1 className="text-5xl font-semibold text-[#2E969E] tracking-wide drop-shadow-[0_0_5px_#2E969E]">
@@ -58,12 +83,19 @@ export default function App() {
       </h1>
       <div
         onClick={() => fileInputRef.current?.click()}
-        className="w-96 h-48 border-2 border-dashed border-[#376178] rounded-xl flex items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-[#36454D] transition"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`w-96 h-48 border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer transition ${
+          isDragging
+            ? "border-blue-400 bg-[#36454D]"
+            : "border-[#376178] hover:border-blue-400 hover:bg-[#36454D]"
+        }`}
       >
         <h2 className="text-center text-[#2E969E]">
           {file
             ? `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`
-            : "Upload"}
+            : "Upload or drag a file here"}
         </h2>
       </div>
       <div className="flex flex-wrap justify-center p-1 gap-2">
